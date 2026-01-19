@@ -210,12 +210,12 @@ export default function Caisse() {
             ))}
           </div>
         </div>
-      {PopupSuppArticle && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-[80vw] h-[80vh] shadow-lg flex flex-col">
-            <h2 className="text-lg font-semibold mb-4">
-              Suppression d'un article
-            </h2>
+        {PopupSuppArticle && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-[80vw] h-[80vh] shadow-lg flex flex-col">
+              <h2 className="text-lg font-semibold mb-4">
+                Suppression d'un article
+              </h2>
 
               <div className="flex-1 min-h-0 border border-gray-300 rounded overflow-y-auto touch-auto scroll-smooth">
                 <ScrollContainer className="flex-1 min-h-0 border border-gray-300 rounded">
@@ -225,6 +225,7 @@ export default function Caisse() {
                         <th className="text-center py-2 px-2">Produit</th>
                         <th className="text-center py-2 px-2">Quantité</th>
                         <th className="text-center py-2 px-2">Prix</th>
+                        <th className="text-center py-2 px-2">Action</th>
                       </tr>
                     </thead>
 
@@ -234,72 +235,49 @@ export default function Caisse() {
                           <td className="py-2 px-2 text-left">{item.name}</td>
                           <td className="py-2 px-2 text-center">{item.quantity}</td>
                           <td className="py-2 px-2 text-right">
-                            <button onClick={handleDelete} className="bg-red-500 text-white px-3 py-1 rounded" >
-                            Supprimer
-                          </button>
-                        </td>
+                            {(item.price * item.quantity).toFixed(2)}€
+                          </td>
+                          <td className="py-2 px-2 text-center">
+                            <button
+                              onClick={() =>
+                                setCart(cart.filter((cartItem) => cartItem.id !== item.id))
+                              }
+                              className="bg-red-500 text-white px-3 py-1 rounded"
+                            >
+                              Supprimer
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </ScrollContainer>
-                </div>
-
-            {/* <div className="flex-1 min-h-0 border border-gray-300 rounded overflow-y-auto">
-              <ScrollContainer className="flex-1 min-h-0 border border-gray-300 rounded">
-                <table className="w-full border-collapse">
-                  <thead className="sticky top-0 bg-white border-b z-10">
-                    <tr>
-                      <th className="py-2 px-2 text-center">Produit</th>
-                      <th className="py-2 px-2 text-center">Quantité</th>
-                      <th className="py-2 px-2 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cart.map((item) => (
-                      <tr key={item.id} className="border-t">
-                        <td className="py-2 px-2">{item.name}</td>
-                        <td className="py-2 px-2 text-center">{item.quantity}</td>
-                        <td className="py-2 px-2 text-right">
-                            <button
-                            onClick={handleDelete()}
-                            className="bg-red-500 text-white px-3 py-1 rounded"
-                          >
-                            Supprimer
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </ScrollContainer>
-            </div> */}
-            <div className="mt-4 flex justify-end items-end gap-3">
+              </div>
+              <div className="mt-4 flex justify-end items-end gap-3">
                 <p className="block text-sm mb-1 ">Code manager :</p>
-              <input
-                type="text"
-                className="border p-2 rounded w-32"
-                value={productCode}
-                onChange={(e) => setProductCode(e.target.value)}
-              />
-              <p className="block text-sm mb-1">Quantité :</p>
-              <input
-                type="text"
-                className="border p-2 rounded w-32"
-                value={productCode}
-                onChange={(e) => setProductCode(e.target.value)}
-              />
-              <button
-                onClick={() => setPopupSuppArticle(false)}
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-              >
-                Retour
-              </button>
+                <input
+                  type="text"
+                  className="border p-2 rounded w-32"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                />
+                <p className="block text-sm mb-1">Quantité :</p>
+                <input
+                  type="text"
+                  className="border p-2 rounded w-32"
+                  value={productCode}
+                  onChange={(e) => setProductCode(e.target.value)}
+                />
+                <button
+                  onClick={() => setPopupSuppArticle(false)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded"
+                >
+                  Retour
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
+        )}
 
         {PopupAttentTicket && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -307,7 +285,16 @@ export default function Caisse() {
               <h2 className="text-lg font-semibold mb-4"> mettre un ticket en attent </h2>
               <p className="mb-6">voulais vous mettre ce ticket en attente?</p>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setPopupAttentTicket(false)} className="px-4 py-2 bg-gray-300 rounded"> oui </button>
+                <button
+                  onClick={() => {
+                    setPauseticker([...pauseticker, cart]); // Ajoute le ticket actuel à la liste d'attente
+                    setCart([]); // Vide le panier après mise en attente
+                    setPopupAttentTicket(false);
+                  }}
+                  className="px-4 py-2 bg-gray-300 rounded"
+                >
+                  oui
+                </button>
                 <button onClick={() => setPopupAttentTicket(false)} className="px-4 py-2 bg-blue-500 text-white rounded" > non </button>
               </div>
             </div>
@@ -317,15 +304,41 @@ export default function Caisse() {
         {PopupReprendreTicket && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-96 shadow-lg">
-              <h2 className="text-lg font-semibold mb-4"> Reprendre un ticket </h2>
-              <p className="mb-6">Ceci est le contenu de la popup.</p>
-              <div className="flex justify-end gap-2">
-                <button onClick={() => setPopupReprendreTicket(false)} className="px-4 py-2 bg-gray-300 rounded"> Annuler </button>
-                <button onClick={() => setPopupReprendreTicket(false)} className="px-4 py-2 bg-blue-500 text-white rounded" > Valider </button>
+              <h2 className="text-lg font-semibold mb-4">Reprendre un ticket</h2>
+              <p className="mb-4">Sélectionnez un ticket à reprendre :</p>
+
+              {pauseticker.length === 0 ? (
+                <p>Aucun ticket en attente</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                  {pauseticker.map((ticket, index) => (
+                    <button
+                      key={index}
+                      className="border p-2 rounded hover:bg-gray-100 text-left"
+                      onClick={() => {
+                        setCart(ticket); // Restaure le ticket dans le panier
+                        setPauseticker(pauseticker.filter((_, i) => i !== index)); // Supprime de l'attente
+                        setPopupReprendreTicket(false);
+                      }}
+                    >
+                      Ticket {index + 1} - {ticket.length} articles
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setPopupReprendreTicket(false)}
+                  className="px-4 py-2 bg-gray-300 rounded"
+                >
+                  Annuler
+                </button>
               </div>
             </div>
           </div>
         )}
+
     </div>
   );
 }
