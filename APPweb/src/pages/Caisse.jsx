@@ -2,88 +2,46 @@ import React, { useState } from "react";
 import "../App.css";
 import ScrollContainer from 'react-indiana-drag-scroll';
 
-//A remplacer par une requête à l'API ou BDD
-const initialProducts = [
-  { id: 1, name: "Croissant", price: 2.5 },
-  { id: 2, name: "Baguette", price: 1 },
-  { id: 3, name: "vin", price: 1 },
-  { id: 4, name: "chocolat", price: 1 },
-  { id: 5, name: "champagne", price: 1 },
-  { id: 6, name: "vélo", price: 1 },
-  { id: 7, name: "voiture", price: 1 },
-  { id: 8, name: "orange", price: 1 },
-  { id: 9, name: "bonbon", price: 1 },
-  { id: 10, name: "viande", price: 1 },
-  { id: 11, name: "Baguette", price: 5 },
-  { id: 12, name: "vin", price: 5 },
-  { id: 13, name: "chocolat", price: 5 },
-  { id: 14, name: "champagne", price: 5 },
-  { id: 15, name: "vélo", price: 5 },
-  { id: 16, name: "voiture", price: 5 },
-  { id: 17, name: "orange", price: 5 },
-  { id: 18, name: "bonbon", price: 5 },
-  { id: 19, name: "viande", price: 5 },
-
-];
-
 
 export default function Caisse() {
+
+    const id_employer = window.electronAPI.getUserId(); ;
+
+    //A garder pour le code de reprendre un ticket
+    const [cart, setCart] = useState([]);
+    //liste que contient des liste de ticker
+    const [pauseticker, setPauseticker] = useState([]);
+    //vide le teste quand il est entré
+    const [productCode, setProductCode] = useState("");
+    // pour les message d'érreur
+    const [errorMessage, setErrorMessage] = useState("");
 
     const [PopupSuppArticle, setPopupSuppArticle] = useState(false);
     const [PopupAttentTicket, setPopupAttentTicket] = useState(false);
     const [PopupReprendreTicket, setPopupReprendreTicket] = useState(false);
+    const [PopupSuppArticlecode, setPopupSuppArticlecode] = useState(false);
 
-  //A garder pour le code de reprendre un ticket
-  const [cart, setCart] = useState([
-    { ...initialProducts[0], quantity: 2 },
-    { ...initialProducts[1], quantity: 1 },
-    { ...initialProducts[2], quantity: 2 },
-    { ...initialProducts[3], quantity: 1 },
-    { ...initialProducts[4], quantity: 2 },
-    { ...initialProducts[5], quantity: 1 },
-    { ...initialProducts[6], quantity: 2 },
-    { ...initialProducts[7], quantity: 1 },
-    { ...initialProducts[8], quantity: 2 },
-    { ...initialProducts[9], quantity: 1 },
-    { ...initialProducts[10], quantity: 2 },
-    { ...initialProducts[11], quantity: 1 },
-    { ...initialProducts[12], quantity: 2 },
-    { ...initialProducts[13], quantity: 1 },
-    { ...initialProducts[14], quantity: 2 },
-    { ...initialProducts[15], quantity: 1 },
-    { ...initialProducts[16], quantity: 2 },
-    { ...initialProducts[17], quantity: 1 },
-    { ...initialProducts[18], quantity: 2 },
-  ]);
-  //liste que contient des liste de ticker
-  const [pauseticker, setPauseticker] = useState([
-  ]);
-  //vide le teste quand il est entré
-  const [productCode, setProductCode] = useState("");
-  //conte ne nombre total d'article dasn le ticket
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  //calcule le prix s'il y a le même article plusieur fois 
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity,0);
+    //conte ne nombre total d'article dasn le ticket
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+    //calcule le prix s'il y a le même article plusieur fois 
+    const totalPrice = cart.reduce((sum, item) => sum + item.prix * item.quantity,0);
+
   //Ajoutr un produit à la liste actuel
-  const handleAddProduct = () => {
-    //recherche un produit via son ID a garder pour la pour repemdre un ticket en cours + recherche de produit
-    const product = initialProducts.find(
-      (p) => p.id === Number(productCode)
-    );
-    if (product) {
-      const existing = cart.find((item) => item.id === product.id);
-      if (existing) {
-        setCart(
-          cart.map((item) =>
-            item.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          )
-        );
+  const handleValidateManagerCode = async () => {
+    try {
+      // requête qui ajout un produit en le cherchant dans la BDD
+      const response = await window.electronAPI.checkManagerCode(productCode); 
+
+      if (response.success) {
+        setPopupSuppArticlecode(false);
+        setPopupSuppArticle(true);
+        setProductCode("");
       } else {
-        setCart([...cart, { ...product, quantity: 1 }]);
+        setErrorMessage("Code manager invalide !");
       }
-      setProductCode("");
+    } catch (err) {
+      console.error(err);
+      setErrorMessage("Erreur interne");
     }
   };
 
@@ -91,26 +49,74 @@ export default function Caisse() {
   const handleDelIdProduct = () => {
       setProductCode("");
   };
-  //enlerve un aticle de la liste à améliorer car supprime quand il y en plusieur
-  const handleDelete = () => {
-    setCart(cart.slice(0,-1));
-  };
-  //enlerve tout les article du tableau
-  const handleALLDelete = () => {
-    //requête de l'envois les commande faite pour l'API ou la BDD
-    setCart(cart.slice(0,0));
-  };
+
+
+  //valide un ticket est l'enregistre dasn la BDD
+  const handleValidateTicket = async () => {
+  if (cart.length === 0) return;
+  try {
+    const user_id = await window.electronAPI.getUserId(); // await ici
+    await window.electronAPI.saveTicket(cart, user_id); 
+
+    setCart([]);
+    setPauseticker([]);
+    setPopupAttentTicket(false);
+    alert("Ticket validé et enregistré !");
+  } catch (err) {
+    console.error(err);
+    setErrorMessage("Erreur lors de l'enregistrement du ticket");
+  }
+};
+
+
+
   //cliker sur un boutton du paver numérique l'ajoute dans le champs code du produit
   const handleNumPad = (value) => {
     setProductCode((prev) => prev + value);
   };
   //apple une fonction pour ajouter l'élément dans la liste
-  const handleEnterText = () => {
-    handleAddProduct();
-  };
+  const handleEnterText = async () => {
+  if (!productCode.trim()) return;
+
+  try {
+    // Appel IPC pour récupérer le produit par code barre
+    const product = await window.electronAPI.getProductByCode(productCode.trim());
+
+    if (!product) {
+      setErrorMessage("Produit non trouvé !");
+      setProductCode("");
+      return;
+    }
+
+    // Vérifie si le produit existe déjà dans le panier
+    const existing = cart.find((item) => item.id_produit === product.id_produit);
+    if (existing) {
+      setCart(
+        cart.map((item) =>
+          item.id_produit === product.id_produit
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      );
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
+
+    setProductCode("");
+  } catch (err) {
+    console.error(err);
+    setErrorMessage("Erreur lors de l'ajout du produit");
+  }
+};
+
   //enléve le text du champs code du produit
   const handleDeleteText = () => {
     handleDelIdProduct();
+  };
+  //refairme les popup
+  const handleRetourALaCaisse = () => {
+      setPopupSuppArticle(false);
+      setPopupSuppArticlecode(false);
   };
 
   return (
@@ -128,11 +134,11 @@ export default function Caisse() {
 
           <tbody>
             {cart.map((item) => (
-              <tr key={item.id} className="border-t border-gray-300">
-                <td className="py-2 px-2 text-left">{item.name}</td>
+              <tr key={item.id_produit} className="border-t border-gray-300">
+                <td className="py-2 px-2 text-left">{item.label}</td>
                 <td className="py-2 px-2 text-center">{item.quantity}</td>
                 <td className="py-2 px-2 text-right">
-                  {(item.price * item.quantity).toFixed(2)}€
+                  {(item.prix * item.quantity).toFixed(2)}€
                 </td>
               </tr>
             ))}
@@ -164,13 +170,13 @@ export default function Caisse() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 className="border bg-gray-100 py-2 rounded"
-                onClick={handleALLDelete}
+                onClick={handleValidateTicket}
               >
                 Valider la commande
               </button>
               <button
                 className="border bg-gray-100 py-2 rounded"
-                onClick={() => setPopupSuppArticle(true)}
+                onClick={() => setPopupSuppArticlecode(true)}
               >
                 Suppression d’article
               </button>
@@ -210,6 +216,36 @@ export default function Caisse() {
             ))}
           </div>
         </div>
+
+        {PopupSuppArticlecode && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-lg flex flex-col gap-4">
+              <p className="text-base font-medium">Code manager :</p>
+              <input
+                type="text"
+                className="border p-2 rounded w-full"
+                value={productCode}
+                onChange={(e) => setProductCode(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={handleValidateManagerCode}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Valider
+                </button>
+                <button
+                  onClick={() => setPopupSuppArticlecode(false)}
+                  className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                >
+                  Retour
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        
         {PopupSuppArticle && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-[80vw] h-[80vh] shadow-lg flex flex-col">
@@ -231,17 +267,25 @@ export default function Caisse() {
 
                     <tbody>
                       {cart.map((item) => (
-                        <tr key={item.id} className="border-t border-gray-300">
-                          <td className="py-2 px-2 text-left">{item.name}</td>
+                        <tr key={item.id_produit} className="border-t border-gray-300">
+                          <td className="py-2 px-2 text-left">{item.label}</td>
                           <td className="py-2 px-2 text-center">{item.quantity}</td>
                           <td className="py-2 px-2 text-right">
-                            {(item.price * item.quantity).toFixed(2)}€
+                            {(item.prix * item.quantity).toFixed(2)}€
                           </td>
                           <td className="py-2 px-2 text-center">
                             <button
-                              onClick={() =>
-                                setCart(cart.filter((cartItem) => cartItem.id !== item.id))
-                              }
+                              onClick={() => {
+                                setCart((prevCart) =>
+                                  prevCart
+                                    .map((cartItem) =>
+                                      cartItem.id_produit === item.id_produit
+                                        ? { ...cartItem, quantity: cartItem.quantity - 1 }
+                                        : cartItem
+                                    )
+                                    .filter((cartItem) => cartItem.quantity > 0)
+                                );
+                              }}
                               className="bg-red-500 text-white px-3 py-1 rounded"
                             >
                               Supprimer
@@ -254,22 +298,8 @@ export default function Caisse() {
                 </ScrollContainer>
               </div>
               <div className="mt-4 flex justify-end items-end gap-3">
-                <p className="block text-sm mb-1 ">Code manager :</p>
-                <input
-                  type="text"
-                  className="border p-2 rounded w-32"
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                />
-                <p className="block text-sm mb-1">Quantité :</p>
-                <input
-                  type="text"
-                  className="border p-2 rounded w-32"
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                />
                 <button
-                  onClick={() => setPopupSuppArticle(false)}
+                  onClick={() => handleRetourALaCaisse() }
                   className="px-4 py-2 bg-blue-500 text-white rounded"
                 >
                   Retour
